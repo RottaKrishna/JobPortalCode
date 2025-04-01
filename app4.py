@@ -1,46 +1,31 @@
 import streamlit as st
 import requests
-import pandas as pd
 
 # Backend URL
 BASE_URL = "http://localhost:8080"
 
-st.title("Job Portal")
+# Login Page
+def login_page():
+    st.subheader("Login")
 
-# Sidebar for role selection
-role = st.sidebar.radio("Login as:", ["Employee", "Employer"])
+    # Inputs for user credentials
+    user_name = st.text_input("Username")
+    user_id = st.number_input("ID", min_value=1, step=1)
+    role = st.radio("Role", ["Employee", "Employer"])
 
-# Apply custom CSS styles for job cards
-st.markdown("""
-    <style>
-    .job-card {
-        background-color: #ffffff;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 10px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-        border-left: 5px solid #007BFF;
-    }
-    .job-title {
-        font-size: 18px;
-        font-weight: bold;
-        color: #007BFF;
-    }
-    .job-description {
-        font-size: 14px;
-        color: #555;
-        margin: 5px 0;
-    }
-    .job-info {
-        font-size: 13px;
-        color: #777;
-        margin: 2px 0;
-    }
-    </style>
-""", unsafe_allow_html=True)
+    if st.button("Login"):
+        if user_name and user_id and role:
+            # Directly log in the user and save session state
+            st.session_state.logged_in = True
+            st.session_state.user_name = user_name
+            st.session_state.user_role = role
+            st.success("Login Successful!")
+            st.session_state.first_run = False  # To indicate that the user has logged in
+        else:
+            st.warning("Please fill in all fields.")
 
 # Employee Dashboard
-if role == "Employee":
+def employee_dashboard():
     st.header("Employee Dashboard")
 
     tab1, tab2 = st.tabs(["View All Jobs", "Search Jobs"])
@@ -48,21 +33,26 @@ if role == "Employee":
     # View All Jobs
     with tab1:
         st.subheader("All Available Jobs")
+
+        # Create two columns for the job listings
+        cols = st.columns(2)
+
         response = requests.get(f"{BASE_URL}/jobPosts")
         
         if response.status_code == 200:
             jobs = response.json()
             if jobs:
-                for job in jobs:
-                    st.markdown(f"""
-                        <div class="job-card">
-                            <p class="job-title">{job["postProfile"]} (ID: {job["postId"]})</p>
-                            <p class="job-description">{job["postDesc"]}</p>
-                            <p class="job-info"><b>Experience Required:</b> {job["reqExperience"]} years</p>
-                            <p class="job-info"><b>Tech Stack:</b> {", ".join(job["postTechStack"])}</p>
-                            <p class="job-info"><b>Employer ID:</b> {job["employerId"]}</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                for i, job in enumerate(jobs):
+                    with cols[i % 2]:  # Alternate between the two columns
+                        st.markdown(f"""
+                            <div style="border: 1px solid #ddd; padding: 16px; margin: 8px; border-radius: 8px; background-color: #f1f1f1;">
+                                <h4 style="color: #333;">{job["postProfile"]} (ID: {job["postId"]})</h4>
+                                <p style="color: #555;">{job["postDesc"]}</p>
+                                <p style="color: #555;"><b>Experience Required:</b> {job["reqExperience"]} years</p>
+                                <p style="color: #555;"><b>Tech Stack:</b> {", ".join(job["postTechStack"])}</p>
+                                <p style="color: #555;"><b>Employer ID:</b> {job["employerId"]}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
             else:
                 st.warning("No jobs available.")
         else:
@@ -79,12 +69,12 @@ if role == "Employee":
                 if search_results:
                     for job in search_results:
                         st.markdown(f"""
-                            <div class="job-card">
-                                <p class="job-title">{job["postProfile"]} (ID: {job["postId"]})</p>
-                                <p class="job-description">{job["postDesc"]}</p>
-                                <p class="job-info"><b>Experience Required:</b> {job["reqExperience"]} years</p>
-                                <p class="job-info"><b>Tech Stack:</b> {", ".join(job["postTechStack"])}</p>
-                                <p class="job-info"><b>Employer ID:</b> {job["employerId"]}</p>
+                            <div style="border: 1px solid #ddd; padding: 16px; margin: 8px; border-radius: 8px; background-color: #f1f1f1;">
+                                <h4 style="color: #333;">{job["postProfile"]} (ID: {job["postId"]})</h4>
+                                <p style="color: #555;">{job["postDesc"]}</p>
+                                <p style="color: #555;"><b>Experience Required:</b> {job["reqExperience"]} years</p>
+                                <p style="color: #555;"><b>Tech Stack:</b> {", ".join(job["postTechStack"])}</p>
+                                <p style="color: #555;"><b>Employer ID:</b> {job["employerId"]}</p>
                             </div>
                         """, unsafe_allow_html=True)
                 else:
@@ -93,7 +83,7 @@ if role == "Employee":
                 st.error("Failed to search jobs.")
 
 # Employer Dashboard
-elif role == "Employer":
+def employer_dashboard():
     st.header("Employer Dashboard")
 
     tab1, tab2, tab3 = st.tabs(["Add Job", "Update Job", "Delete Job"])
@@ -184,3 +174,16 @@ elif role == "Employer":
                     st.error("Failed to delete job.")
         else:
             st.warning("No jobs available for deletion.")
+
+# Main Page Handling
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.first_run = True
+
+if st.session_state.first_run:
+    login_page()
+else:
+    if st.session_state.user_role == "Employee":
+        employee_dashboard()
+    elif st.session_state.user_role == "Employer":
+        employer_dashboard()
