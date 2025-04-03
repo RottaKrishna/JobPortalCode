@@ -81,10 +81,10 @@ public class JobRestController {
 	
 	
 	@DeleteMapping("jobPost/{postId}")
-	public String deleteJob(@PathVariable int postId)
+	public String deleteJob(@PathVariable int postId, @RequestParam int employerId)
 	{
-		service.deleteJob(postId);
-		return "Deleted";
+		return service.deleteJob(postId,employerId);
+
 	}
 	
 	
